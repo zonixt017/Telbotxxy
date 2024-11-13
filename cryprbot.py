@@ -17,9 +17,7 @@ async def swap_command(update : Update, context : ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text('Swap your token')
     await update.message.reply_text('Enter the blockchain of your token')
     processed0 : str = text.lower()
-    if 'bitcoin' in processed:
-        return 'Selected blockchain : Bitcoin'
-
+    
 
 async def support_command(update : Update, context : ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text('Contact me on telegram @CryptoSwappybot')
@@ -38,6 +36,10 @@ def handle_response(text: str) -> str:
 async def handle_response(update : Update, context : ContextTypes.DEFAULT_TYPE):
     message_type : str = update.message.chat.type
     text : str = update.message.text
+    processed : str = text.lower()
+    if 'bitcoin' in processed:
+        return 'Selected blockchain : Bitcoin'
+
 
     print(f'User ({update.message.chat.id}) in {message_type} : "{text}"')
 
