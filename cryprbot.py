@@ -16,6 +16,9 @@ async def help_command(update : Update, context : ContextTypes.DEFAULT_TYPE):
 async def swap_command(update : Update, context : ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text('Swap your token')
     await update.message.reply_text('Enter the blockchain of your token')
+    processed0 : str = text.lower()
+    if 'bitcoin' in processed:
+        return 'Selected blockchain : Bitcoin'
 
 
 async def support_command(update : Update, context : ContextTypes.DEFAULT_TYPE):
