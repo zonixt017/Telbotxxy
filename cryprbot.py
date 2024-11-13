@@ -1,59 +1,67 @@
 from typing import Final
 from telegram import Update
-from telegram.ext import Application, CommandHandler, MessageHandler, filters, ContextTypes
+from telegram.ext import (
+    Application,
+    CommandHandler,
+    MessageHandler,
+    ConversationHandler,
+    filters,
+    ContextTypes
+)
 
 # Constants
 TOKEN: Final = '7619058464:AAHD0moNP90-IVpPHTagnSPNc7eBi94sCow'
 BOT_USERNAME: Final = '@CryptoSwappybot'
 
+# Define conversation states
+SELECT_BLOCKCHAIN, ENTER_TOKEN, ENTER_AMOUNT = range(3)
+
 # Start Command
 async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text('Hi! What can I do for you?')
 
-# Help Command
-async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text(
-        'Hi! I am Kichu, A Scammer bot. Send your crypto and get money instantly through any device, '
-        'even as cash through your charging port!!'
-    )
-
-# Swap Command
+# Swap Command Handler - Initial State
 async def swap_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text('Swap your token')
-    await update.message.reply_text('Enter the blockchain of your token')
+    await update.message.reply_text('Swap your token.\nEnter the blockchain of your token (e.g., Bitcoin, Ethereum):')
+    return SELECT_BLOCKCHAIN
 
-# Support Command
-async def support_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text('Contact me on Telegram @CryptoSwappybot')
+# Handle Blockchain Selection
+async def handle_blockchain_selection(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_input = update.message.text.lower()
 
-# Function for Simple Text Responses
-def get_simple_response(text: str) -> str:
-    processed = text.lower()
-    if 'hello' in processed:
-        return 'Hi! What can I do for you?'
-    return "I don't know that. Select a command from the menu!"
+    # Example check for "bitcoin"
+    if 'bitcoin' in user_input:
+        await update.message.reply_text('Selected blockchain: Bitcoin')
+        await update.message.reply_text('Enter your token:')
+        return ENTER_TOKEN  # Move to the next state
 
-# Message Handler
-async def message_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    message_type = update.message.chat.type
-    text = update.message.text
-    processed = text.lower()
+    # If the input is not recognized
+    await update.message.reply_text('Unsupported blockchain. Please enter a valid blockchain (e.g., Bitcoin, Ethereum):')
+    return SELECT_BLOCKCHAIN  # Stay in the same state
+
+# Handle Token Input
+async def handle_token_input(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_token = update.message.text
+    context.user_data['token'] = user_token  # Store the token in context for later use
+    await update.message.reply_text(f"Selected token: {user_token}")
+    await update.message.reply_text("Enter the amount:")
+    return ENTER_AMOUNT  # Move to the next state
+
+# Handle Amount Input
+async def handle_amount_input(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_amount = update.message.text
+    context.user_data['amount'] = user_amount  # Store the amount in context for later use
+    selected_token = context.user_data.get('token', 'unknown token')
     
-    # Debug Print
-    print(f'User ({update.message.chat.id}) in {message_type}: "{text}"')
-    
-    if message_type == 'group' and BOT_USERNAME in text:
-        new_text = text.replace(BOT_USERNAME, '').strip()
-        response = get_simple_response(new_text)
-    else:
-        response = get_simple_response(text)
+    # Respond with the entered details
+    await update.message.reply_text(f"Amount entered: {user_amount} for token: {selected_token}")
+    await update.message.reply_text("Transaction complete. Thank you!")
+    return ConversationHandler.END  # End the conversation
 
-    # Example of token selection handling
-    if 'bitcoin' in processed:
-        response = 'Selected blockchain: Bitcoin'
-
-    print('Bot:', response)
-    await update.message.reply_text(response)
+# Cancel Command
+async def cancel_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await update.message.reply_text("Conversation canceled. Use /swap to start again.")
+    return ConversationHandler.END
 
 # Error Handling
 async def error(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -64,14 +72,24 @@ if __name__ == '__main__':
     print("Starting bot...")
     app = Application.builder().token(TOKEN).build()
 
+    # Conversation Handler for Swap Command
+    swap_conv_handler = ConversationHandler(
+        entry_points=[CommandHandler('swap', swap_command)],
+        states={
+            SELECT_BLOCKCHAIN: [MessageHandler(filters.TEXT & ~filters.COMMAND, handle_blockchain_selection)],
+            ENTER_TOKEN: [MessageHandler(filters.TEXT & ~filters.COMMAND, handle_token_input)],
+            ENTER_AMOUNT: [MessageHandler(filters.TEXT & ~filters.COMMAND, handle_amount_input)],
+        },
+        fallbacks=[CommandHandler('cancel', cancel_command)],
+    )
+
     # Register Command Handlers
     app.add_handler(CommandHandler('start', start_command))
-    app.add_handler(CommandHandler('help', help_command))
-    app.add_handler(CommandHandler('swap', swap_command))
-    app.add_handler(CommandHandler('support', support_command))
+    app.add_handler(CommandHandler('help', start_command))  # Reused start_command for help message
+    app.add_handler(CommandHandler('support', start_command))  # Reused start_command for support message
 
-    # Register Message Handler
-    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, message_handler))
+    # Register Conversation Handler
+    app.add_handler(swap_conv_handler)
 
     # Register Error Handler
     app.add_error_handler(error)
