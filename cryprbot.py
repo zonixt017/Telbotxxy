@@ -10,7 +10,8 @@ from telegram.ext import (
 )
 
 # Constants
-TOKEN: Final = '7619058464:AAHD0moNP90-IVpPHTagnSPNc7eBi94sCow'
+TOKEN: Final = '#Enter your token'
+#Enter your bot username
 BOT_USERNAME: Final = '@CryptoSwappybot'
 
 # Define conversation states
